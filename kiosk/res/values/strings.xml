@@ -1,0 +1,4 @@
+<resources>
+    <string name="nav_label">RAD Frame navigation</string>
+    <string name="nav_description">Back and Dashboard buttons outside the kiosk, for a frame with no navigation bar. Reads no screen content.</string>
+</resources>

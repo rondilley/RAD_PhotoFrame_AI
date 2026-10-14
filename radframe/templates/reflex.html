@@ -1,0 +1,66 @@
+{% set w = dg.week if dg.week is defined else {} %}
+<div class="dash">
+  <div class="top">
+    <div class="title">RAD <b>Reflex</b></div>
+    <div class="meta"><span class="num" data-clock="hm">--:--</span><span data-clock="date">{{ today }}</span></div>
+  </div>
+  <div class="body">
+    {% if dg.status in ('pending', 'fault') %}
+    <div class="card" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+      <div class="label">Reflex digest</div>
+      <div style="font-size:36px" class="{{ 'hot' if dg.status == 'fault' else 'dim' }}">{{ 'Reading calendar, mail, Slack and meetings...' if dg.status == 'pending' else 'The digest failed' }}</div>
+      {% if dg.error %}<div class="dim" style="font-size:20px">{{ dg.error }}</div>{% endif %}
+    </div>
+    {% else %}
+    <div class="reflexboard">
+      <div class="card dayline">
+        <div class="dl1">{{ dg.day_line }}</div>
+        {% if w.line %}<div class="dl2"><span class="label">Week</span> {{ w.line }}</div>{% endif %}
+      </div>
+
+      <div class="card col">
+        <div class="label">Waiting on you</div>
+        {% for m in dg.inbox[:4] %}
+        <div class="item">
+          <div class="i1"><span class="src mail">mail</span>{{ m.from }}<span class="age">{{ m.age }}</span></div>
+          <div class="i2">{{ m.subject }}</div>
+          <div class="i3">{{ m.why }}</div>
+        </div>
+        {% endfor %}
+        {% for s in dg.slack[:3] %}
+        <div class="item">
+          <div class="i1"><span class="src slack">slack</span>{{ s.from }} &middot; {{ s.where }}<span class="age">{{ s.age }}</span></div>
+          <div class="i3">{{ s.gist }}</div>
+        </div>
+        {% endfor %}
+        {% if not dg.inbox and not dg.slack %}<div class="empty">Nothing waits on you.</div>{% endif %}
+      </div>
+
+      <div class="card col">
+        <div class="label">Recent meetings</div>
+        {% for m in dg.meetings[:3] %}
+        <div class="item">
+          <div class="i1">{{ m.title }}<span class="age">{{ m.when }}</span></div>
+          <div class="i3">{{ m.gist }}</div>
+          {% for a in m.my_actions[:2] %}<div class="act">{{ a }}</div>{% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">No recorded meetings in the last 3 days.</div>
+        {% endfor %}
+      </div>
+
+      <div class="card col">
+        <div class="label">This week</div>
+        {% for p in (w.priorities or [])[:5] %}
+        <div class="prio"><span class="pn">{{ loop.index }}</span><span class="pt">{{ p.title }}</span>{% if p.status %}<span class="ps">{{ p.status }}</span>{% endif %}</div>
+        {% endfor %}
+        {% if w.actions_today %}
+        <div class="label" style="margin-top:12px">Due today</div>
+        {% for a in w.actions_today[:4] %}<div class="act">{{ a.action }}{% if a.due %} <span class="dim">&middot; {{ a.due }}</span>{% endif %}</div>{% endfor %}
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="foot"><span>Sources: Reflex calendar, Gmail, Slack, Fireflies, weekly reports{% if dg.status == 'out_of_date' %} &middot; <span class="warm">out of date</span>{% endif %}</span><span>{% if dg._meta is defined %}digest <span class="num" data-since="{{ dg._meta.time|int }}">0s</span> ago{% endif %}{% if dg.running %} &middot; updating{% endif %}</span></div>
+</div>

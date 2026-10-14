@@ -1,0 +1,70 @@
+{% set s = sys %}
+{% set g = s.gpu or {} %}
+<div class="dash">
+  <div class="top">
+    <div class="title">RAD <b>Office</b></div>
+    <div class="meta"><span>Workstation up {{ s.uptime_s|duration }}</span><span class="num">{{ s.procs }} processes</span></div>
+  </div>
+  <div class="body">
+    <div class="now">
+      <div class="card clock">
+        <div>
+          <div class="num"><span class="hm" data-clock="hm">--:--</span><span class="s" data-clock="s">--</span></div>
+          <div class="date" data-clock="date">{{ today }}</div>
+          {% if cal.next %}<div class="nextline"><span class="label">Next</span> {{ cal.next.title }} <span class="dim">{{ cal.next.start|hm }} &middot; {{ cal.next_in_s|until }}</span></div>{% endif %}
+        </div>
+        <div class="vibe">
+          <div class="label">Claude Code today</div>
+          <div class="big num">{{ cc.today.out|human }} <span class="unit">tokens out</span></div>
+          <div class="sub">{{ cc.today.calls }} model calls &middot; {{ cc.projects|length }} projects &middot; {{ cc.today.cached|human }} cached in</div>
+          <div class="mini">{{ bars(cc.hours, w=480, h=56, color='#ff8a5c', gap=3) }}</div>
+          <div class="sessions">
+            {% for a in cc.active[:2] %}
+            <div><span class="dot live"></span>{{ a.project }}<span class="dim ago">{{ a.age_s|duration }} ago</span></div>
+            {% else %}
+            <div class="dim">No active session</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="gauges">
+        <div class="card gauge">
+          <div class="ringwrap">{{ ring(s.cpu, size=124, stroke=12, color='#4cc9f0') }}<div class="pct num {{ s.cpu|level }}">{{ '%.0f'|format(s.cpu or 0) }}</div></div>
+          <div class="info">
+            <div class="name">CPU</div>
+            <div class="detail">{{ s.cores }} threads{% if s.freq_ghz %}<br>{{ '%.1f'|format(s.freq_ghz) }} GHz{% endif %}</div>
+          </div>
+        </div>
+        <div class="card gauge">
+          <div class="ringwrap">{{ ring(g.util or 0, size=124, stroke=12, color='#b388ff') }}<div class="pct num {{ (g.util or 0)|level }}">{{ g.util or 0 }}</div></div>
+          <div class="info">
+            <div class="name">{{ (g.name or 'GPU').replace('RTX ', '') }}</div>
+            <div class="detail num">{{ g.mem_used|gib }}/{{ g.mem_total|gib }} GB<br>{{ g.temp }}&deg;C &middot; {{ '%.0f'|format(g.power_w or 0) }}W</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lower">
+        <div class="card hist">
+          <div class="head"><span class="label">CPU &middot; 30 min</span><span class="val num" style="color:var(--cpu)">{{ '%.0f'|format(s.cpu or 0) }}%</span></div>
+          {{ spark(s.cpu_hist, w=300, h=90, color='#4cc9f0') }}
+          <div class="head gap"><span class="label">GPU &middot; 30 min</span><span class="val num" style="color:var(--gpu)">{{ g.util or 0 }}%</span></div>
+          {{ spark(s.gpu_hist, w=300, h=90, color='#b388ff') }}
+        </div>
+        <div class="card hist">
+          <div class="head"><span class="label">Memory</span><span class="val num" style="color:var(--mem)">{{ '%.0f'|format(s.mem_pct or 0) }}%</span></div>
+          <div class="sub2 num">{{ s.mem_used|gib }} of {{ s.mem_total|gib }} GB</div>
+          {{ spark(s.mem_hist, w=300, h=70, color='#3ddc97') }}
+          <div class="disks">
+            {% for d in s.disks %}
+            {% set free_pct = 100 - d.pct %}
+            <div class="diskrow {{ 'hot' if free_pct < 10 else ('warm' if free_pct < 20 else '') }}"><span>{{ d.name }}</span><div class="bar"><i style="width:{{ d.pct }}%"></i></div><span class="num">{{ (d.total - d.used)|gib }} GB free</span></div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Sources: workstation sensors, ~/.claude transcripts</span><span>sampled <span class="num" data-since="{{ s.time|int }}">0s</span> ago</span></div>
+</div>

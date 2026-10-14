@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="rad.photoframe.kiosk">
+
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <!-- Granted by kiosk_install.ps1, so the kiosk can keep NavService enabled. -->
+  <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+
+  <application
+      android:label="RAD Frame"
+      android:allowBackup="false"
+      android:hardwareAccelerated="true"
+      android:usesCleartextTraffic="true"
+      android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+
+    <activity
+        android:name=".MainActivity"
+        android:launchMode="singleTask"
+        android:screenOrientation="sensorLandscape"
+        android:configChanges="orientation|screenSize|keyboardHidden|keyboard">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+
+    <!-- Not exported: only root (ADB) can start it. -->
+    <activity
+        android:name=".ConfigActivity"
+        android:exported="false"
+        android:theme="@android:style/Theme.NoDisplay" />
+
+    <!-- Off until S1.5 (ConfigActivity with home=true). -->
+    <activity-alias
+        android:name=".Home"
+        android:targetActivity=".MainActivity"
+        android:enabled="false"
+        android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.HOME" />
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+    </activity-alias>
+
+    <service
+        android:name=".NavService"
+        android:label="@string/nav_label"
+        android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+        android:exported="true">
+      <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+      </intent-filter>
+      <meta-data android:name="android.accessibilityservice" android:resource="@xml/nav_service" />
+    </service>
+  </application>
+</manifest>

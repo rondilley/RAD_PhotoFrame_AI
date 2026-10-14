@@ -1,0 +1,79 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["day_line", "calendar", "inbox", "slack", "meetings", "week", "notes"],
+  "properties": {
+    "day_line": {"type": "string", "description": "One sentence: what matters most today."},
+    "calendar": {
+      "type": "array", "maxItems": 16,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["day", "start", "end", "title"],
+        "properties": {
+          "day": {"type": "string", "enum": ["today", "tomorrow"]},
+          "start": {"type": "string", "description": "HH:MM 24 h local, or all-day"},
+          "end": {"type": "string", "description": "HH:MM 24 h local, or empty"},
+          "title": {"type": "string"},
+          "with": {"type": "string", "description": "Short: company or first names, max 40 characters"},
+          "video": {"type": "boolean"},
+          "prep": {"type": "string", "description": "One short line to prepare, or empty"}
+        }
+      }
+    },
+    "inbox": {
+      "type": "array", "maxItems": 5,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["from", "subject", "why"],
+        "properties": {
+          "from": {"type": "string"}, "subject": {"type": "string"},
+          "age": {"type": "string", "description": "for example 3h or 2d"},
+          "why": {"type": "string", "description": "Why Ron must reply, max 80 characters"}
+        }
+      }
+    },
+    "slack": {
+      "type": "array", "maxItems": 5,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["where", "from", "gist"],
+        "properties": {
+          "where": {"type": "string"}, "from": {"type": "string"},
+          "gist": {"type": "string", "description": "max 90 characters"}, "age": {"type": "string"}
+        }
+      }
+    },
+    "meetings": {
+      "type": "array", "maxItems": 3,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["title", "when", "gist", "my_actions"],
+        "properties": {
+          "title": {"type": "string"}, "when": {"type": "string"},
+          "gist": {"type": "string", "description": "max 120 characters"},
+          "my_actions": {"type": "array", "maxItems": 3, "items": {"type": "string"}}
+        }
+      }
+    },
+    "week": {
+      "type": "object", "additionalProperties": false,
+      "required": ["line", "priorities", "actions_today", "actions_week"],
+      "properties": {
+        "line": {"type": "string"},
+        "priorities": {"type": "array", "maxItems": 5, "items": {"type": "object", "additionalProperties": false,
+          "required": ["title"], "properties": {"title": {"type": "string"}, "status": {"type": "string"}}}},
+        "actions_today": {"type": "array", "maxItems": 6, "items": {"type": "object", "additionalProperties": false,
+          "required": ["action"], "properties": {"action": {"type": "string"}, "due": {"type": "string"}}}},
+        "actions_week": {"type": "array", "maxItems": 6, "items": {"type": "object", "additionalProperties": false,
+          "required": ["action"], "properties": {"action": {"type": "string"}, "due": {"type": "string"}}}},
+        "wins": {"type": "array", "maxItems": 3, "items": {"type": "string"}},
+        "risks": {"type": "array", "maxItems": 3, "items": {"type": "string"}}
+      }
+    },
+    "counts": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"inbox_needs_reply": {"type": "integer"}, "slack_open": {"type": "integer"}, "meetings_today": {"type": "integer"}}
+    },
+    "notes": {"type": "array", "items": {"type": "string"}, "description": "One short line per source that failed or had no data"}
+  }
+}

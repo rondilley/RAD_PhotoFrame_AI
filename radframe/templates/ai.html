@@ -1,0 +1,52 @@
+{% set g = sys.gpu or {} %}
+<div class="dash">
+  <div class="top">
+    <div class="title">RAD <b>AI</b></div>
+    <div class="meta"><span>Cluster {{ cl.up }}/{{ cl.total }} up &middot; {{ cl.busy }}/{{ cl.slots }} slots busy</span><span class="num" data-clock="hm">--:--</span></div>
+  </div>
+  <div class="body">
+    <div class="aiboard">
+      <div class="nodes">
+        {% for n in cl.nodes %}
+        <div class="card node {{ 'down' if not n.ok else ('busy' if n.busy else '') }}">
+          <div class="nh"><span class="dot {{ 'live' if n.busy else '' }} {{ 'off' if not n.ok else '' }}"></span><span class="nn">{{ n.name }}</span><span class="nl num">{% if n.ok %}{{ '%.0f'|format(n.latency_ms or 0) }} ms{% else %}down{% endif %}</span></div>
+          <div class="nm">{{ n.model or '&nbsp;'|safe }}</div>
+          <div class="slotrow">{% for i in range(n.slots or 4) %}<i class="{{ 'on' if i < n.busy else '' }}"></i>{% endfor %}<span class="num">{{ n.busy }}/{{ n.slots }}</span></div>
+          <div class="nstats num"><span><b>{{ n.req_hour }}</b> req/h</span><span><b>{{ '%.0f'|format(n.tok_s) }}</b> tok/s</span></div>
+          {{ spark(n.busy_hist, w=240, h=46, top=(n.slots or 4), color='#3ddc97') }}
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="card aitotal">
+        <div class="label">Cluster &middot; last hour</div>
+        <div class="tots num">
+          <div><div class="k">{{ cl.req_hour|human }}</div><div class="t">requests</div></div>
+          <div><div class="k">{{ cl.tok_hour|human }}</div><div class="t">tokens (est.)</div></div>
+          <div><div class="k">{{ cl.req_min }}</div><div class="t">req last min</div></div>
+        </div>
+        <div style="margin-top:12px">{{ bars(cl.per5, w=400, h=120, color='#3ddc97', gap=6) }}</div>
+        <div class="axis"><span>60 min</span><span>30</span><span>now</span></div>
+      </div>
+
+      <div class="card gauge local">
+        <div class="ringwrap">{{ ring(g.util or 0, size=124, stroke=12, color='#b388ff') }}<div class="pct num">{{ g.util or 0 }}</div></div>
+        <div class="info">
+          <div class="label">Local GPU</div>
+          <div class="name">{{ g.name or 'GPU' }}</div>
+          <div class="detail num">{{ g.mem_used|gib }}/{{ g.mem_total|gib }} GB &middot; {{ g.temp }}&deg;C &middot; {{ '%.0f'|format(g.power_w or 0) }} W</div>
+          {{ spark(sys.gpu_hist, w=300, h=56, color='#b388ff') }}
+        </div>
+      </div>
+
+      <div class="card cloud">
+        <div class="label">Cloud &middot; Claude Code today</div>
+        <div class="k num" style="color:var(--claude)">{{ cc.today.out|human }}</div>
+        <div class="t">tokens out &middot; {{ cc.today.calls }} calls</div>
+        <div class="t">{{ cc.today.fresh_in|human }} fresh in &middot; {{ cc.today.cached|human }} cached</div>
+        <div style="margin-top:10px">{{ bars(cc.hours[-12:], w=300, h=60, color='#ff8a5c', gap=3) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Sources: llama.cpp /slots on tars, case, plex, kipp; workstation GPU; ~/.claude</span><span>token rate is an estimate</span></div>
+</div>

@@ -1,0 +1,93 @@
+<div class="dash">
+  <div class="top">
+    <div class="title">RAD <b>Today</b></div>
+    <div class="meta"><span class="num" data-clock="hm">--:--</span><span data-clock="date">{{ today }}</span></div>
+  </div>
+  <div class="body">
+    <div class="todayboard">
+      <div class="agenda">
+        <div class="card next {{ 'soon' if cal.next_in_s is not none and cal.next_in_s < 900 else '' }}">
+          {% if cal.status == 'loading' %}
+          <div class="label">Calendar</div>
+          <div class="ntitle dim">Reading your calendar...</div>
+          {% elif cal.status == 'unconfigured' %}
+          <div class="label">Calendar</div>
+          <div class="ntitle dim">Not connected yet</div>
+          <div class="nmeta">Put the secret iCal address in calendars.key.txt on the workstation.</div>
+          {% elif cal.next %}
+          {% set n = cal.next %}
+          <div class="label">{{ 'Now' if n.start <= now_dt else 'Next' }} &middot; <span class="when">{{ cal.next_in_s|until if n.start > now_dt else 'ends ' ~ (n.end|hm) }}</span></div>
+          <div class="ntitle">{{ n.title }}</div>
+          <div class="nmeta num">{{ n.start|hm }} &ndash; {{ n.end|hm }}{% if n.video %} &middot; <span class="tag">video</span>{% endif %}{% if n.where %} &middot; {{ n.where }}{% endif %}</div>
+          {% if n.prep %}<div class="prep">Prep: {{ n.prep }}</div>{% endif %}
+          {% else %}
+          <div class="label">Next</div>
+          <div class="ntitle dim">Nothing else today</div>
+          {% endif %}
+        </div>
+
+        <div class="card list">
+          <div class="label">Today</div>
+          {% set items = cal.today %}
+          {% for e in items[:7] %}
+          <div class="ev {{ 'past' if e.past else '' }} {{ 'live' if e.now else '' }}">
+            <span class="t num">{% if e.all_day %}all day{% else %}{{ e.start|hm }}{% endif %}</span>
+            <span class="n">{{ e.title }}</span>
+            {% if e.now %}<span class="pill">now</span>{% endif %}
+          </div>
+          {% else %}
+          <div class="ev dim"><span class="n">{{ 'No events' if cal.status != 'unconfigured' else '' }}</span></div>
+          {% endfor %}
+          {% if items|length > 7 %}<div class="more dim">+{{ items|length - 7 }} more</div>{% endif %}
+          <div class="label" style="margin-top:16px">Tomorrow</div>
+          {% for e in cal.tomorrow[:3] %}
+          <div class="ev small"><span class="t num">{% if e.all_day %}all day{% else %}{{ e.start|hm }}{% endif %}</span><span class="n">{{ e.title }}</span></div>
+          {% else %}
+          <div class="ev small dim"><span class="n">{{ 'Nothing yet' if cal.status != 'unconfigured' else '' }}</span></div>
+          {% endfor %}
+          {% if cal.tomorrow|length > 3 %}<div class="more dim">+{{ cal.tomorrow|length - 3 }} more</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="card weather">
+        {% if wx.status == 'unconfigured' %}
+        <div class="label">Weather</div>
+        <div class="ntitle dim" style="margin-top:20px">Location not set</div>
+        {% elif wx.status == 'fault' %}
+        <div class="label">Weather &middot; {{ wx.place }}</div>
+        <div class="ntitle dim" style="margin-top:20px">No forecast ({{ wx.error }})</div>
+        {% else %}
+        <div class="label">{{ wx.place }}{% if wx.status == 'out_of_date' %} &middot; <span class="warm">out of date</span>{% endif %}</div>
+        <div class="wnow">
+          <div class="wicon">{{ icon(wx.icon, 120) }}</div>
+          <div>
+            <div class="wtemp num">{{ wx.temp|round|int }}&deg;</div>
+            <div class="wtext">{{ wx.text }}</div>
+          </div>
+        </div>
+        <div class="wmeta num">H {{ wx.hi|round|int }}&deg; &middot; L {{ wx.lo|round|int }}&deg; &middot; feels {{ wx.feels|round|int }}&deg; &middot; wind {{ wx.wind|round|int }} mph</div>
+        <div class="hours">
+          {% for h in wx.hours %}
+          <div class="h"><div class="hh num">{{ '%02d'|format(h.hour) }}</div>{{ icon(h.icon, 36) }}<div class="ht num">{{ h.temp|round|int }}&deg;</div><div class="hp num {{ 'wet' if h.rain >= 40 else '' }}">{{ h.rain }}%</div></div>
+          {% endfor %}
+        </div>
+        <div class="days">
+          {% set lo_all = wx.days[1:6]|map(attribute='lo')|min %}
+          {% set hi_all = wx.days[1:6]|map(attribute='hi')|max %}
+          {% for d in wx.days[1:6] %}
+          <div class="d">
+            <span class="dn">{{ d.date|dayname }}</span>{{ icon(d.icon, 34) }}
+            <span class="dl num">{{ d.lo|round|int }}&deg;</span>
+            <div class="range"><i style="margin-left:{{ (100 * (d.lo - lo_all) / ((hi_all - lo_all) or 1))|round(1) }}%;width:{{ (100 * (d.hi - d.lo) / ((hi_all - lo_all) or 1))|round(1) }}%"></i></div>
+            <span class="dh num">{{ d.hi|round|int }}&deg;</span>
+            <span class="dp num {{ 'wet' if d.rain >= 40 else 'dim' }}">{{ d.rain }}%</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% if wx.sunset %}<div class="sun dim num">sunrise {{ wx.sunrise }} &middot; sunset {{ wx.sunset }}</div>{% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Sources: Reflex calendar, Open-Meteo</span><span>{% if cal.fetched %}calendar <span class="num" data-since="{{ cal.fetched|int }}">0s</span> ago{% endif %}</span></div>
+</div>

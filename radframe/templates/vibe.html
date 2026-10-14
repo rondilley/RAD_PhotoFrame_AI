@@ -1,0 +1,51 @@
+{% set top = (cc.projects[0].out if cc.projects else 1) or 1 %}
+<div class="dash">
+  <div class="top">
+    <div class="title">RAD <b>Vibe</b></div>
+    <div class="meta"><span class="num" data-clock="hm">--:--</span><span data-clock="date">{{ today }}</span></div>
+  </div>
+  <div class="body">
+    <div class="vibeboard">
+      <div class="card hero">
+        <div><div class="label">Tokens out today</div><div class="k c num">{{ cc.today.out|human }}</div><div class="t">{{ cc.today.calls }} model calls</div></div>
+        <div><div class="label">Fresh input today</div><div class="k num">{{ cc.today.fresh_in|human }}</div><div class="t">{{ cc.today.cached|human }} from cache</div></div>
+        <div><div class="label">Last 7 days</div><div class="k num">{{ cc.week.out|human }}</div><div class="t">{{ cc.week.calls }} calls out</div></div>
+      </div>
+
+      <div class="card active">
+        <div class="label">Projects today</div>
+        {% for p in cc.projects[:6] %}
+        <div class="proj">
+          <div class="n">{{ p.name }}</div><div class="v num">{{ p.out|human }}</div>
+          <div class="bar"><i style="width:{{ (100 * p.out / top)|round(1) }}%"></i></div>
+        </div>
+        {% else %}
+        <div class="dim" style="font-size:22px">No Claude Code work yet today.</div>
+        {% endfor %}
+        {% if cc.projects|length > 6 %}<div class="dim" style="font-size:20px">+{{ cc.projects|length - 6 }} more</div>{% endif %}
+        <div class="label" style="margin-top:auto">Live sessions</div>
+        <div class="livelist">
+          {% for a in cc.active[:4] %}
+          <div><span class="dot live"></span>{{ a.project }}<span class="age">{{ a.age_s|duration }}</span></div>
+          {% else %}
+          <div class="dim">None in the last 10 minutes</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="card">
+          <div class="label">Tokens out per hour &middot; last 24 h</div>
+          <div style="margin-top:16px">{{ bars(cc.hours, w=420, h=250, color='#ff8a5c', gap=4) }}</div>
+          <div class="axis"><span>{{ local(cc.hour0 - 23*3600, '%H:00') }}</span><span>{{ local(cc.hour0 - 12*3600, '%H:00') }}</span><span>now</span></div>
+        </div>
+        <div class="card">
+          <div class="label">Per day</div>
+          <div style="margin-top:16px">{{ bars(cc.days|map(attribute='out')|list, w=254, h=250, color='#b388ff', gap=8) }}</div>
+          <div class="axis">{% for d in cc.days %}<span>{{ d.label[0] }}</span>{% endfor %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Source: ~/.claude transcripts (read only){% if cc.models %} &middot; {% for m, n in cc.models[:2] %}{{ m }} {{ n|human }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</span><span>read <span class="num" data-since="{{ cc.scanned|int }}">0s</span> ago</span></div>
+</div>

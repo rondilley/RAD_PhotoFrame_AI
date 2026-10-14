@@ -1,0 +1,108 @@
+{% set gm = garmin %}
+{% set st = strava %}
+{% macro hm_s(s) %}{% if s %}{{ (s // 3600)|int }}:{{ '%02d'|format(((s % 3600) // 60)|int) }}{% else %}--{% endif %}{% endmacro %}
+{% macro when(iso) %}{% if iso == gm.today %}today{% else %}{{ iso|dayname }}{% endif %}{% endmacro %}
+<div class="dash">
+  <div class="top">
+    <div class="title">RAD <b>Health</b></div>
+    <div class="meta">{% if gm.data_date %}<span class="{{ 'syncwarn' if gm.sync_age_d > 1 else '' }}">Garmin synced {{ 'today' if gm.sync_age_d == 0 else ('yesterday' if gm.sync_age_d == 1 else gm.sync_age_d ~ ' days ago') }}</span>{% endif %}<span class="num" data-clock="hm">--:--</span></div>
+  </div>
+  <div class="body">
+    <div class="healthboard">
+      {% if gm.status in ('unconfigured', 'pending', 'fault') %}
+      <div class="card hnote">
+        <div class="label">Garmin Connect</div>
+        <div class="hn1">{{ {'unconfigured': 'Not connected yet', 'pending': 'Reading Garmin...', 'fault': 'Garmin read failed'}[gm.status] }}</div>
+        <div class="hn2">{% if gm.status == 'unconfigured' %}On the workstation: python -m radframe.accounts{% else %}{{ gm.error or '' }}{% endif %}</div>
+      </div>
+      {% else %}
+      {% set n = gm.night %}
+      <div class="tiles">
+        <div class="card tile">
+          <div class="label">Sleep{% if n.date %} &middot; {{ 'last night' if n.date == gm.today else n.date|dayname }}{% endif %}</div>
+          <div class="tvrow"><span class="tv num">{{ hm_s(n.sleep_s) }}</span>{% if n.score %}<span class="ts">score <b class="num">{{ n.score }}</b></span>{% endif %}</div>
+          {% set tot = (n.deep_s or 0) + (n.light_s or 0) + (n.rem_s or 0) + (n.awake_s or 0) %}
+          {% if tot %}
+          <div class="stages"><i class="deep" style="width:{{ (100 * (n.deep_s or 0) / tot)|round(1) }}%"></i><i class="light" style="width:{{ (100 * (n.light_s or 0) / tot)|round(1) }}%"></i><i class="rem" style="width:{{ (100 * (n.rem_s or 0) / tot)|round(1) }}%"></i><i class="awake" style="width:{{ (100 * (n.awake_s or 0) / tot)|round(1) }}%"></i></div>
+          <div class="legend dim">deep {{ hm_s(n.deep_s) }} &middot; REM {{ hm_s(n.rem_s) }}</div>
+          {% endif %}
+          <div class="minibars">{{ bars(gm.nights|map(attribute='sleep_s')|map('default', 0, true)|list, w=240, h=34, color='#b388ff', gap=6) }}</div>
+        </div>
+        <div class="card tile ringtile">
+          <div class="ringwrap">{{ ring(gm.bb_now or 0, size=120, stroke=12, color='#3ddc97') }}<div class="pct num">{{ gm.bb_now if gm.bb_now is not none else '--' }}</div></div>
+          <div><div class="label">Body Battery</div><div class="ts num">high {{ gm.bb_high or '--' }}<br>low {{ gm.bb_low or '--' }}</div>{% if gm.data_date != gm.today %}<div class="ts dim">{{ gm.data_date|dayname }}</div>{% endif %}</div>
+        </div>
+        {% set h = gm.hrv_last %}
+        <div class="card tile">
+          <div class="label">HRV{% if h.date %} &middot; {{ 'last night' if h.date == gm.today else h.date|dayname }}{% endif %}</div>
+          <div class="tvrow"><span class="tv num">{{ h.hrv or '--' }}<span class="unit"> ms</span></span>{% if h.hrv_status %}<span class="badge {{ 'good' if h.hrv_status == 'BALANCED' else 'warn' }}">{{ h.hrv_status|replace('_', ' ')|lower }}</span>{% endif %}</div>
+          <div class="ts">7-day avg {{ h.hrv_week or '--' }} ms</div>
+          <div class="minibars">{{ bars(gm.nights|map(attribute='hrv')|map('default', 0, true)|list, w=240, h=34, color='#3ddc97', gap=6) }}</div>
+        </div>
+        <div class="card tile">
+          <div class="label">Resting HR{% if gm.data_date != gm.today %} &middot; {{ gm.data_date|dayname }}{% endif %}</div>
+          <div class="tv num">{{ gm.rhr or '--' }}<span class="unit"> bpm</span></div>
+          <div class="ts num">7-day avg {{ gm.rhr7 or '--' }}</div>
+          <div class="ts num">stress {{ gm.stress or '--' }}</div>
+        </div>
+      </div>
+
+      <div class="card steps">
+        <div class="head"><span class="label">Steps &middot; 14 days</span><span class="num sv">{{ '{:,}'.format(gm.steps_avg) }}<span class="dim"> a day &middot; {{ when(gm.data_date) }} {{ '{:,}'.format(gm.steps or 0) }}</span></span></div>
+        <div style="margin-top:10px">{{ bars(gm.steps14|map(attribute='steps')|list, w=500, h=74, color='#4cc9f0', gap=6, highlight_last=false) }}</div>
+        <div class="axis">{% for d in gm.steps14 %}<span>{{ (d.date|dayname)[:2] if d.date else '' }}</span>{% endfor %}</div>
+      </div>
+      {% set w = gm.weight %}
+      <div class="card weight">
+        {% if w %}
+        <div>
+          <div class="label">Weight &middot; Index scale</div>
+          <div class="wv num">{{ '%.1f'|format(w.lb) }}<span class="unit"> lb</span></div>
+          {% if w.peak_lb - w.lb >= 1 %}<div class="wd num">&minus;{{ '%.0f'|format(w.peak_lb - w.lb) }} lb from {{ '%.0f'|format(w.peak_lb) }}</div>{% endif %}
+          <div class="ws num">{% if w.fat %}body fat {{ '%.1f'|format(w.fat) }}%{% endif %}{% if w.muscle_lb %} &middot; muscle {{ '%.0f'|format(w.muscle_lb) }} lb{% endif %}</div>
+          <div class="ws {{ 'syncwarn' if w.age_d > 14 else '' }}">{{ w.date_label }}{% if w.age_d > 1 %} &middot; {{ w.age_d }} d ago{% endif %}</div>
+        </div>
+        <div class="wchart">
+          {{ spark(w.series, w=440, h=108, top=(w.series|max) + 3, bottom=(w.series|min) - 3, xs=w.xs, color='#3ddc97') }}
+          <div class="axis"><span>{{ w.first_date[:4] }}</span><span>{{ w.count }} weigh-ins</span><span>today</span></div>
+        </div>
+        {% else %}
+        <div><div class="label">Weight &middot; Index scale</div><div class="hn2">No weigh-ins in the last 5 years.</div></div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="card training">
+        <div class="label">Training &middot; Strava</div>
+        {% if st.status == 'unconfigured' %}
+        <div class="hn1">Not connected yet</div><div class="hn2">On the workstation: python -m radframe.accounts</div>
+        {% elif st.status in ('pending', 'fault') %}
+        <div class="hn1">{{ 'Reading Strava...' if st.status == 'pending' else 'Strava read failed' }}</div><div class="hn2">{{ st.error or '' }}</div>
+        {% else %}
+        {% if st.days_since is not none and st.days_since > 7 %}
+        <div class="since"><b class="num">{{ st.days_since }}</b> days since the last workout</div>
+        {% else %}
+        {% set tw = st.this_week %}{% set lw = st.last_week %}
+        <div class="week num"><div><b>{{ '%.1f'|format(tw.hours) }}</b> h</div><div><b>{{ '%.0f'|format(tw.mi) }}</b> mi</div><div><b>{{ tw.count }}</b> this week</div></div>
+        <div class="ts">last week {{ '%.1f'|format(lw.hours) }} h &middot; {{ '%.0f'|format(lw.mi) }} mi &middot; {{ lw.count }}</div>
+        {% endif %}
+        <div class="sub">12 months &middot; hours</div>
+        {{ bars(st.months|map(attribute='hours')|list, w=380, h=80, color='#ff8a5c', gap=6) }}
+        <div class="axis">{% for m in st.months %}<span>{{ m.label }}</span>{% endfor %}</div>
+        <div class="totals num">
+          {% set y = st.ytd %}
+          <div><span class="tk">This year</span>{{ y.ride.count }} rides &middot; {{ '{:,.0f}'.format(y.ride.mi) }} mi{% if y.run.count %} &middot; {{ y.run.count }} runs{% endif %}{% if y.swim.count %} &middot; {{ y.swim.count }} swims{% endif %}</div>
+          {% set a = st.all %}
+          <div><span class="tk">All time</span>{{ '{:,.0f}'.format(a.ride.mi) }} mi ride &middot; {{ '{:,.0f}'.format(a.run.mi) }} mi run &middot; {{ '{:,.0f}'.format(a.swim.mi) }} mi swim</div>
+        </div>
+        <div class="acts">
+          {% for a in st.recent[:3] %}
+          <div class="act2"><span class="at">{{ a.type|replace('Ride', ' ride')|replace('Run', ' run') }}</span><span class="an">{{ a.name }}</span><span class="ak num">{% if a.mi >= 0.1 %}{{ '%.1f'|format(a.mi) }} mi &middot; {% endif %}{{ hm_s(a.moving_s) }}</span><span class="ad dim">{{ a.start.strftime('%b %d') }}</span></div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Sources: Garmin Connect, Strava</span><span>{% if gm.fetched %}Garmin <span class="num" data-since="{{ gm.fetched|int }}">0s</span> ago{% endif %}</span></div>
+</div>
