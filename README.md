@@ -121,4 +121,4 @@ root, one `<label> <ics-address>` on each line.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+GNU General Public License, version 3 (GPL-3.0). See [LICENSE](LICENSE).
