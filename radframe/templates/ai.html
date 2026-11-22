@@ -8,12 +8,25 @@
     <div class="aiboard">
       <div class="nodes">
         {% for n in cl.nodes %}
-        <div class="card node {{ 'down' if not n.ok else ('busy' if n.busy else '') }}">
-          <div class="nh"><span class="dot {{ 'live' if n.busy else '' }} {{ 'off' if not n.ok else '' }}"></span><span class="nn">{{ n.name }}</span><span class="nl num">{% if n.ok %}{{ '%.0f'|format(n.latency_ms or 0) }} ms{% else %}down{% endif %}</span></div>
-          <div class="nm">{{ n.model or '&nbsp;'|safe }}</div>
-          <div class="slotrow">{% for i in range(n.slots or 4) %}<i class="{{ 'on' if i < n.busy else '' }}"></i>{% endfor %}<span class="num">{{ n.busy }}/{{ n.slots }}</span></div>
-          <div class="nstats num"><span><b>{{ n.req_hour }}</b> req/h</span><span><b>{{ '%.0f'|format(n.tok_s) }}</b> tok/s</span></div>
-          {{ spark(n.busy_hist, w=240, h=46, top=(n.slots or 4), color='#3ddc97') }}
+        {% set v = hw.get(n.name) or {} %}
+        {% set hot = v.ok and (v.gpu >= 50 or v.cpu >= 50 or v.npu_min >= 20) %}
+        <div class="card node {{ 'down' if not v.ok and not n.ok else ('busy' if n.busy or hot else '') }}">
+          <div class="nh"><span class="dot {{ 'live' if n.busy or hot else '' }} {{ 'off' if not v.ok and not n.ok else '' }}"></span><span class="nn">{{ n.name }}</span><span class="nl num">{% if v.ok %}{{ '%.0f'|format(v.temp) }}&deg;C &middot; {{ '%.0f'|format(v.power_w) }} W{% else %}no vitals{% endif %}</span></div>
+          {% set tp = (v.procs or [None])[0] %}
+          <div class="nm gp">{% if tp %}<b>{{ tp.name }}</b>{% if tp.user != 'inference' %}<span>&nbsp;({{ tp.user }})</span>{% endif %}<span class="num">&nbsp;{{ tp.vram|gib }} GB{% if v.procs|length > 1 %} +{{ v.procs|length - 1 }}{% endif %}</span>{% elif v.ok %}<span>no GPU process</span>{% else %}&nbsp;{% endif %}</div>
+          {% if v.ok %}
+          <div class="vit num">
+            {% for key, lab, col in [('cpu','CPU','var(--cpu)'), ('gpu','GPU','var(--gpu)'), ('vram','VRAM','#7c5cff'), ('ram','RAM','var(--mem)'), ('npu_min','NPU','var(--disk)')] %}
+            {% set pct = [[v[key] or 0, 0]|max, 100]|min %}
+            <div class="vm {{ pct|level if key in ('vram', 'ram') else '' }}"><div class="v">{{ '%.0f'|format(pct) }}</div><div class="b"><i style="height:{{ '%.0f'|format(pct) }}%;background:{{ col }}"></i></div><div class="l">{{ lab }}</div></div>
+            {% endfor %}
+          </div>
+          <div class="vsub num"><span>{{ v.vram_used|gib }}/{{ v.vram_total|gib }} GB VRAM</span><span>{{ v.ram_used|gib }}/{{ v.ram_total|gib }} GB RAM</span></div>
+          {% else %}
+          <div class="vit none">vitals: {{ v.error or 'no data' }}</div>
+          {% endif %}
+          <div class="nstats num">{% if n.ok %}<span><b>{{ n.busy }}</b>/{{ n.slots }} slots</span><span><b>{{ n.req_hour }}</b> req/h</span><span><b>{{ '%.0f'|format(n.tok_s) }}</b> tok/s</span>{% else %}<span>llama.cpp off</span><span>GPU &middot; 10 min</span>{% endif %}</div>
+          {{ spark(v.gpu_hist or [], w=240, h=76, top=100, color='#b388ff') }}
         </div>
         {% endfor %}
       </div>
@@ -25,7 +38,7 @@
           <div><div class="k">{{ cl.tok_hour|human }}</div><div class="t">tokens (est.)</div></div>
           <div><div class="k">{{ cl.req_min }}</div><div class="t">req last min</div></div>
         </div>
-        <div style="margin-top:12px">{{ bars(cl.per5, w=400, h=120, color='#3ddc97', gap=6) }}</div>
+        <div style="margin-top:12px">{{ bars(cl.per5, w=400, h=84, color='#3ddc97', gap=6) }}</div>
         <div class="axis"><span>60 min</span><span>30</span><span>now</span></div>
       </div>
 
@@ -48,5 +61,5 @@
       </div>
     </div>
   </div>
-  <div class="foot"><span>Sources: llama.cpp /slots on tars, case, plex, kipp; workstation GPU; ~/.claude</span><span>token rate is an estimate</span></div>
+  <div class="foot"><span>Sources: llama.cpp /slots and SSH vitals on tars, case, plex, kipp; workstation GPU; ~/.claude</span><span>token rate is an estimate</span></div>
 </div>

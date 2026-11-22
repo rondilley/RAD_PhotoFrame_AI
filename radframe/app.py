@@ -16,6 +16,7 @@ from .adapters.calendar_ics import CalendarReader
 from .adapters.claude_code import ClaudeCodeReader
 from .adapters.health import GarminReader, StravaReader
 from .adapters.llm_cluster import ClusterReader
+from .adapters.node_vitals import VitalsReader
 from .adapters.system import SystemSampler
 from .adapters.weather import WeatherReader
 from .config import Config
@@ -38,6 +39,7 @@ def create_app(cfg: Config) -> FastAPI:
     calendar = CalendarReader(cfg.calendars_file, tz)
     link = FrameLink(cfg.frame_serial, cfg.port)
     cluster = ClusterReader(cfg.cluster)
+    vitals = VitalsReader(cfg.vitals)
     garmin = GarminReader(tz)
     strava = StravaReader(tz)
     digest = DigestReader(cfg.reflex_root, cfg.timezone, every_s=cfg.digest_every_s, hours=cfg.digest_hours)
@@ -120,6 +122,7 @@ def create_app(cfg: Config) -> FastAPI:
             ctx["strava"] = strava.snapshot()
         elif name == "ai":
             ctx["cl"] = cluster.snapshot()
+            ctx["hw"] = vitals.snapshot()
             ctx["sys"] = system.snapshot()
             ctx["cc"] = claude.snapshot()
         else:
@@ -136,7 +139,7 @@ def create_app(cfg: Config) -> FastAPI:
 
     @app.get("/frame", response_class=HTMLResponse)
     def frame():
-        return HTMLResponse(page("shell.html", poll_s=cfg.poll_s), headers={"Cache-Control": "no-cache"})
+        return HTMLResponse(page("shell.html", poll_s=cfg.poll_s, v=shell_version()), headers={"Cache-Control": "no-cache"})
 
     @app.get("/v1/now")
     def now(request: Request, shown: str | None = None):

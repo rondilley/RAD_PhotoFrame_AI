@@ -28,6 +28,8 @@ class Config:
     weather_lat: float | None = None
     weather_lon: float | None = None
     weather_place: str = ""
+    cluster: list[tuple[str, str]] = field(default_factory=list)
+    vitals: list[tuple[str, str]] = field(default_factory=list)  # (node name, ssh target)
 
     @classmethod
     def load(cls, path: Path = PROJ / "config" / "radframe.toml") -> "Config":
@@ -41,6 +43,7 @@ class Config:
             cfg.weather_lon = w.get("longitude")
             cfg.weather_place = w.get("place", "")
             cfg.cluster = [(c["name"], c["url"]) for c in data.get("cluster", [])]
+            cfg.vitals = [(c["name"], c.get("ssh", f"inference@{c['name']}")) for c in data.get("cluster", [])]
             if "rotation" in data:
                 cfg.rotation = [(r["dashboard"], int(r["seconds"])) for r in data["rotation"]]
         return cfg

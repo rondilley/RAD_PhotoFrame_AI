@@ -122,7 +122,7 @@ shows it. The frame does not store that content. This is the correct meaning of
 | ID | Requirement | Scope | Source |
 | --- | --- | --- | --- |
 | FR-30 | The dashboard MUST show the CPU load, the memory use and the disk space of the workstation. It MUST show the load, memory, temperature and power of the GPU. | v0.1 | DN §4 |
-| FR-31 | The dashboard SHOULD show the same values for the local LLM cluster hosts through the Glances REST API. | v0.4 | RS V4.7 |
+| FR-31 | The dashboard SHOULD show the same values for the local LLM cluster hosts. It SHOULD also show the NPU use and the top GPU process of each host. The source is a read-only SSH session that reads `/proc` and `/sys`. The hosts do not run Glances (changed 2026-11-22). | v0.4 | RS V4.7, Ron |
 | FR-32 | The dashboard MUST show when the frame last sent a heartbeat to the host. | v0.1 | OR-03 |
 
 ### 1.5 Reflex dashboard

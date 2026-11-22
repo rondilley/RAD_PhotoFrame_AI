@@ -331,6 +331,32 @@ more frequent than the 60 s limit of OR-03.
     completion request, so it does not wake a model that sleeps (IR-04).
   - Ollama `/api/ps`, vLLM `/metrics`, Glances REST API version 4 with a 5 s
     time limit (IR-09).
+  - Node vitals (FR-31, `adapters/node_vitals.py`, added 2026-11-22). The
+    inference nodes do not run Glances. The host keeps one SSH session open
+    to each node as the `inference` user. The session sends a short `sh`
+    loop on stdin.
+
+    The loop reads `/proc/stat`, `/proc/meminfo` and the amdgpu, amdxdna and
+    KFD files in `/sys`. It writes one line each 5 s. It installs nothing and
+    writes nothing on the nodes. The values are:
+    - CPU percent from the difference of two `/proc/stat` lines.
+    - GPU busy percent: the average of five reads of `gpu_busy_percent`, one
+      each second, because one read is not stable.
+    - VRAM and GTT use, GPU temperature and GPU power from the amdgpu files.
+    - RAM use from `MemTotal` minus `MemAvailable`.
+    - NPU: the amdxdna driver gives no busy counter. The value is the part of
+      the last minute in which `runtime_status` was `active`.
+    - Top GPU process. Without root, the kernel gives no GPU time for each
+      process. Thus the reader sorts the processes by VRAM.
+      `/sys/class/kfd/kfd/proc/<pid>/vram_*` gives the ROCm processes of all
+      users, and all users can read it. DRM fdinfo gives the Vulkan processes
+      of the SSH user only. The name is the script for an interpreter, and
+      the model alias for llama.cpp.
+
+    If a session stops, the reader starts it again after 30 s, and the card
+    shows the SSH error. A value older than 15 s shows as "no data". When the
+    host process stops, `ssh` cannot write its output and stops too. The SSH
+    key stays on the workstation. The frame gets only the values.
   - Provider admin APIs: with no admin key file, the panel shows "not
     configured". Each request has a 10 s time limit (IR-05).
   - Open-Meteo: no key. The reader keeps the last good forecast for a
@@ -673,6 +699,7 @@ radframe/                 Python package for the host service, with type hints
       md_source.py        Marlow section fallback
       html_source.py      Platform usage HTML as text (v0.4)
     weather.py  gcal.py  llm_cluster.py  provider_usage.py   (v0.4)
+    node_vitals.py        SSH reader: CPU, GPU, VRAM, RAM, NPU, GPU processes
   templates/              shell.html and one template for each dashboard
   static/                 shell.js, tokens.css, base.css, font files
 kiosk/                    Fork of the example kiosk app (Java, no Gradle)
@@ -801,8 +828,9 @@ that satisfies it. "Runbook" is `docs/FRAME_RUNBOOK.md`. "Ops" is
   Ron's unit are not known (discovery notes OQ1, OQ2). v0.0 answers them.
 - **Router capability.** Can Ron's router make a frame-only VLAN or SSID with
   egress rules? TC-07 in v0.0 answers this.
-- **LLM cluster hosts.** The names, addresses and engines of the local LLM
-  hosts are not known. v0.4 must have them.
+- **LLM cluster hosts.** Closed on 2026-11-22. The hosts are `tars`, `case`,
+  `kipp` and `plex` (Strix Halo, gfx1151, llama.cpp on TCP 5150). They are in
+  `config/radframe.toml`.
 - **Rotation interval.** No research gives a number. The default is 30 s for
   each dashboard, and Ron changes it in the configuration.
 - **`:has()` support.** The research survey and the example repository do not

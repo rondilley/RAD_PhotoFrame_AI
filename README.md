@@ -15,7 +15,7 @@ The frame shows six dashboards in rotation:
 | `today` | Calendar for today and tomorrow, and the weather |
 | `reflex` | Reflex digest: the week, the items that wait on Ron, the recent meetings |
 | `health` | Garmin Connect and Strava values: sleep, Body Battery, HRV, heart rate at rest |
-| `ai` | The local LLM cluster, the local GPU, and the Claude Code use today |
+| `ai` | For each inference node: llama.cpp slots, CPU, GPU, VRAM, RAM and NPU use, temperature, power and the top GPU process. Also the local GPU and the Claude Code use today |
 | `vibe` | Tokens today, the last 7 days, the projects today, the live sessions |
 
 ## How it works
@@ -83,7 +83,13 @@ longitude = <longitude>
 [[cluster]]          # optional: one entry for each llama.cpp node
 name = "<name>"
 url = "http://<address>:5150"
+ssh = "inference@<name>"   # optional: the SSH target for the node vitals (this is the default)
 ```
+
+The node vitals use one SSH session for each `[[cluster]]` node. The SSH
+key and the host names must be in `~/.ssh/config` on the workstation, with
+`BatchMode` access and no password. The sessions only read `/proc` and
+`/sys` on the nodes. They install and write nothing on the nodes.
 
 Start the host:
 
@@ -104,7 +110,7 @@ root, one `<label> <ics-address>` on each line.
 | Item | State |
 | --- | --- |
 | Version | v0.1. The gates of S1.1 to S1.3 are satisfactory. The frame has the S1.5 changes, but `tasks/todo.md` has no gate record for S1.4 or S1.5. The host has six dashboards. |
-| Last change | 2026-11-19: frame runbook, README update |
+| Last change | 2026-11-22: node vitals through SSH and the top GPU process on the `ai` dashboard |
 | Works | Root ADB through USB, WebView 106, kiosk as Home, vendor apps off, frame firewall, frame on the IoT Wi-Fi, host start at logon |
 | Open | No automatic tests. No `pyproject.toml`. No DHCP reservation for the workstation. |
 
